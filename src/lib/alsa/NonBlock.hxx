@@ -33,6 +33,8 @@ class MultiSocketMonitor;
  * Update #MultiSocketMonitor's socket list from
  * snd_pcm_poll_descriptors().  To be called from
  * MultiSocketMonitor::PrepareSockets().
+ *
+ * Throws exception on error.
  */
 std::chrono::steady_clock::duration
 PrepareAlsaPcmSockets(MultiSocketMonitor &m, snd_pcm_t *pcm,
@@ -45,6 +47,6 @@ PrepareAlsaPcmSockets(MultiSocketMonitor &m, snd_pcm_t *pcm,
  */
 std::chrono::steady_clock::duration
 PrepareAlsaMixerSockets(MultiSocketMonitor &m, snd_mixer_t *mixer,
-		      ReusableArray<pollfd> &pfd_buffer);
+		      ReusableArray<pollfd> &pfd_buffer) noexcept;
 
 #endif

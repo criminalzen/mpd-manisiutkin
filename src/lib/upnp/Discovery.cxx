@@ -33,19 +33,20 @@
 #include <string.h>
 
 UPnPDeviceDirectory::Downloader::Downloader(UPnPDeviceDirectory &_parent,
-					    const Upnp_Discovery &disco)
+					    const UpnpDiscovery &disco)
 	:defer_start_event(_parent.GetEventLoop(),
 			   BIND_THIS_METHOD(OnDeferredStart)),
 	 parent(_parent),
-	 id(disco.DeviceId), url(disco.Location),
-	 expires(std::chrono::seconds(disco.Expires)),
+	 id(UpnpDiscovery_get_DeviceID_cstr(&disco)),
+	 url(UpnpDiscovery_get_Location_cstr(&disco)),
+	 expires(std::chrono::seconds(UpnpDiscovery_get_Expires(&disco))),
 	 request(*parent.curl, url.c_str(), *this)
 {
 	parent.downloaders.push_back(*this);
 }
 
 void
-UPnPDeviceDirectory::Downloader::Destroy()
+UPnPDeviceDirectory::Downloader::Destroy() noexcept
 {
 	parent.downloaders.erase_and_dispose(parent.downloaders.iterator_to(*this),
 					     DeleteDisposer());
@@ -86,7 +87,7 @@ UPnPDeviceDirectory::Downloader::OnEnd()
 }
 
 void
-UPnPDeviceDirectory::Downloader::OnError(std::exception_ptr e)
+UPnPDeviceDirectory::Downloader::OnError(std::exception_ptr e) noexcept
 {
 	LogError(e);
 	Destroy();
@@ -170,19 +171,23 @@ UPnPDeviceDirectory::LockRemove(const std::string &id)
 }
 
 inline int
-UPnPDeviceDirectory::OnAlive(Upnp_Discovery *disco)
+UPnPDeviceDirectory::OnAlive(const UpnpDiscovery *disco) noexcept
 {
-	if (isMSDevice(disco->DeviceType) ||
-	    isCDService(disco->ServiceType)) {
-		auto *downloader = new Downloader(*this, *disco);
-
+	if (isMSDevice(UpnpDiscovery_get_DeviceType_cstr(disco)) ||
+	    isCDService(UpnpDiscovery_get_ServiceType_cstr(disco))) {
 		try {
-			downloader->Start();
-		} catch (...) {
-			BlockingCall(GetEventLoop(), [downloader](){
-					downloader->Destroy();
-				});
+			auto *downloader = new Downloader(*this, *disco);
 
+			try {
+				downloader->Start();
+			} catch (...) {
+				BlockingCall(GetEventLoop(), [downloader](){
+						downloader->Destroy();
+					});
+
+				throw;
+			}
+		} catch (...) {
 			LogError(std::current_exception());
 			return UPNP_E_SUCCESS;
 		}
@@ -192,12 +197,12 @@ UPnPDeviceDirectory::OnAlive(Upnp_Discovery *disco)
 }
 
 inline int
-UPnPDeviceDirectory::OnByeBye(Upnp_Discovery *disco)
+UPnPDeviceDirectory::OnByeBye(const UpnpDiscovery *disco) noexcept
 {
-	if (isMSDevice(disco->DeviceType) ||
-	    isCDService(disco->ServiceType)) {
+	if (isMSDevice(UpnpDiscovery_get_DeviceType_cstr(disco)) ||
+	    isCDService(UpnpDiscovery_get_ServiceType_cstr(disco))) {
 		// Device signals it is going off.
-		LockRemove(disco->DeviceId);
+		LockRemove(UpnpDiscovery_get_DeviceID_cstr(disco));
 	}
 
 	return UPNP_E_SUCCESS;
@@ -208,19 +213,19 @@ UPnPDeviceDirectory::OnByeBye(Upnp_Discovery *disco)
 // Example: ContentDirectories appearing and disappearing from the network
 // We queue a task for our worker thread(s)
 int
-UPnPDeviceDirectory::Invoke(Upnp_EventType et, void *evp)
+UPnPDeviceDirectory::Invoke(Upnp_EventType et, const void *evp) noexcept
 {
 	switch (et) {
 	case UPNP_DISCOVERY_SEARCH_RESULT:
 	case UPNP_DISCOVERY_ADVERTISEMENT_ALIVE:
 		{
-			Upnp_Discovery *disco = (Upnp_Discovery *)evp;
+			auto *disco = (const UpnpDiscovery *)evp;
 			return OnAlive(disco);
 		}
 
 	case UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE:
 		{
-			Upnp_Discovery *disco = (Upnp_Discovery *)evp;
+			auto *disco = (const UpnpDiscovery *)evp;
 			return OnByeBye(disco);
 		}
 
@@ -257,7 +262,7 @@ UPnPDeviceDirectory::UPnPDeviceDirectory(EventLoop &event_loop,
 {
 }
 
-UPnPDeviceDirectory::~UPnPDeviceDirectory()
+UPnPDeviceDirectory::~UPnPDeviceDirectory() noexcept
 {
 	BlockingCall(GetEventLoop(), [this](){
 			downloaders.clear_and_dispose(DeleteDisposer());
@@ -265,7 +270,7 @@ UPnPDeviceDirectory::~UPnPDeviceDirectory()
 }
 
 inline EventLoop &
-UPnPDeviceDirectory::GetEventLoop()
+UPnPDeviceDirectory::GetEventLoop() noexcept
 {
 	return curl->GetEventLoop();
 }

@@ -33,7 +33,12 @@ static unsigned upnp_client_ref;
 static UpnpClient_Handle upnp_client_handle;
 
 static int
-UpnpClientCallback(Upnp_EventType et, void *evp, void *cookie)
+UpnpClientCallback(Upnp_EventType et,
+#if UPNP_VERSION >= 10800
+		   const
+#endif
+		   void *evp,
+		   void *cookie) noexcept
 {
 	if (cookie == nullptr)
 		/* this is the cookie passed to UpnpRegisterClient();
@@ -74,7 +79,7 @@ UpnpClientGlobalInit(UpnpClient_Handle &handle)
 }
 
 void
-UpnpClientGlobalFinish()
+UpnpClientGlobalFinish() noexcept
 {
 	{
 		const std::lock_guard<Mutex> protect(upnp_client_init_mutex);

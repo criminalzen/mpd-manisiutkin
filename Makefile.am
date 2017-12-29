@@ -245,6 +245,7 @@ CURL_SOURCES = \
 	src/lib/curl/Slist.hxx
 
 UPNP_SOURCES = \
+	src/lib/upnp/Compat.hxx \
 	src/lib/upnp/Init.cxx src/lib/upnp/Init.hxx \
 	src/lib/upnp/ClientInit.cxx src/lib/upnp/ClientInit.hxx \
 	src/lib/upnp/Device.cxx src/lib/upnp/Device.hxx \
@@ -258,6 +259,10 @@ UPNP_SOURCES = \
 
 ALSA_SOURCES = \
 	src/lib/alsa/Version.cxx src/lib/alsa/Version.hxx \
+	src/lib/alsa/AllowedFormat.cxx src/lib/alsa/AllowedFormat.hxx \
+	src/lib/alsa/HwSetup.cxx src/lib/alsa/HwSetup.hxx \
+	src/lib/alsa/Format.hxx \
+	src/lib/alsa/PeriodBuffer.hxx \
 	src/lib/alsa/NonBlock.cxx src/lib/alsa/NonBlock.hxx
 
 #
@@ -519,8 +524,7 @@ libevent_a_SOURCES = \
 	src/event/SignalMonitor.hxx src/event/SignalMonitor.cxx \
 	src/event/TimerEvent.hxx src/event/TimerEvent.cxx \
 	src/event/IdleMonitor.hxx src/event/IdleMonitor.cxx \
-	src/event/DeferredMonitor.hxx src/event/DeferredMonitor.cxx \
-	src/event/DeferEvent.hxx \
+	src/event/DeferEvent.cxx src/event/DeferEvent.hxx \
 	src/event/MaskMonitor.hxx src/event/MaskMonitor.cxx \
 	src/event/SocketMonitor.cxx src/event/SocketMonitor.hxx \
 	src/event/BufferedSocket.cxx src/event/BufferedSocket.hxx \
@@ -1301,6 +1305,7 @@ ENCODER_LIBS = \
 	$(VORBISENC_LIBS)
 
 libencoder_plugins_a_SOURCES = \
+	src/encoder/Configured.cxx src/encoder/Configured.hxx \
 	src/encoder/EncoderAPI.hxx \
 	src/encoder/EncoderInterface.hxx \
 	src/encoder/EncoderPlugin.hxx \

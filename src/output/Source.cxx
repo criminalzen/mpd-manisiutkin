@@ -138,11 +138,12 @@ AudioOutputSource::GetChunkData(const MusicChunk &chunk,
 
 	assert(data.size % in_audio_format.GetFrameSize() == 0);
 
-	if (!data.IsEmpty() && replay_gain_filter != nullptr) {
+	if (!data.empty() && replay_gain_filter != nullptr) {
 		replay_gain_filter_set_mode(*replay_gain_filter,
 					    replay_gain_mode);
 
-		if (chunk.replay_gain_serial != *replay_gain_serial_p) {
+		if (chunk.replay_gain_serial != *replay_gain_serial_p &&
+		    chunk.replay_gain_serial != MusicChunk::IGNORE_REPLAY_GAIN) {
 			replay_gain_filter_set_info(*replay_gain_filter,
 						    chunk.replay_gain_serial != 0
 						    ? &chunk.replay_gain_info
@@ -161,7 +162,7 @@ AudioOutputSource::FilterChunk(const MusicChunk &chunk)
 {
 	auto data = GetChunkData(chunk, replay_gain_filter_instance,
 				 &replay_gain_serial);
-	if (data.IsEmpty())
+	if (data.empty())
 		return data;
 
 	/* cross-fade */
@@ -170,7 +171,7 @@ AudioOutputSource::FilterChunk(const MusicChunk &chunk)
 		auto other_data = GetChunkData(*chunk.other,
 					       other_replay_gain_filter_instance,
 					       &other_replay_gain_serial);
-		if (other_data.IsEmpty())
+		if (other_data.empty())
 			return data;
 
 		/* if the "other" chunk is longer, then that trailer
@@ -211,7 +212,7 @@ bool
 AudioOutputSource::Fill(Mutex &mutex)
 {
 	if (current_chunk != nullptr && pending_tag == nullptr &&
-	    pending_data.IsEmpty())
+	    pending_data.empty())
 		pipe.Consume(*std::exchange(current_chunk, nullptr));
 
 	if (current_chunk != nullptr)
@@ -242,6 +243,6 @@ AudioOutputSource::ConsumeData(size_t nbytes) noexcept
 {
 	pending_data.skip_front(nbytes);
 
-	if (pending_data.IsEmpty())
+	if (pending_data.empty())
 		pipe.Consume(*std::exchange(current_chunk, nullptr));
 }
